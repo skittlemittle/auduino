@@ -1,11 +1,10 @@
 // Auduino Sequencer, the Lo-Fi granular 8-step sequencer
 // Modified by NPoole @ SparkFun Electronics ( http://sparkfun.com )
 // Based on the Auduino Synthesizer (v5) by Peter Knight, tinker.it ( http://tinker.it )
-// 
+//
 // Auduino Info: http://code.google.com/p/tinkerit/wiki/Auduino
-// Sequencer Hardware Tutorial: https://learn.sparkfun.com/tutorials/step-sequencing-with-auduino
-// 
-// Enjoy!
+//
+// Modified 2023 skittlemittle
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -126,7 +125,7 @@ void audioOn() {
 }
 
 
-int tempo = 100000;
+unsigned int tempo = 100000;
 int pattern = 0;
 int counter = 0;
 
@@ -149,7 +148,7 @@ void setup() {
   pinMode(PWM_PIN,OUTPUT);
   audioOn();
   pinMode(LED_PIN,OUTPUT);
-  
+
   pinMode(39, OUTPUT); digitalWrite(39, LOW);
   pinMode(41, OUTPUT); digitalWrite(41, LOW);
   pinMode(43, OUTPUT); digitalWrite(43, LOW);
@@ -158,7 +157,7 @@ void setup() {
   pinMode(49, OUTPUT); digitalWrite(49, LOW);
   pinMode(51, OUTPUT); digitalWrite(51, LOW);
   pinMode(53, OUTPUT); digitalWrite(53, LOW);
-  
+
   pinMode(24, INPUT); digitalWrite(24, HIGH);
   pinMode(26, INPUT); digitalWrite(26, HIGH);
   pinMode(28, INPUT); digitalWrite(28, HIGH);
@@ -171,65 +170,60 @@ void setup() {
 }
 
 void loop() {
-
-  
   counter++;
+  /* Most of the time, the main loop will just advance the counter while we continue generating noise. 
+  Each iteration, we check the counter against our "tempo" parameter to find out if it's time yet to 
+  jump to the next step. */  
 
-/* Most of the time, the main loop will just advance the counter while we continue generating noise. 
-Each iteration, we check the counter against our "tempo" parameter to find out if it's time yet to 
-jump to the next step. */  
-  
-  if(counter>tempo){
-  
-  
-//Housecleaning: Just a few things to get out of the way since the counter is "full"
-  counter=0;
-  if(pattern==8){pattern=0;}
-  pattern++;
-  digitalWrite(39, LOW);digitalWrite(41, LOW);digitalWrite(43, LOW);digitalWrite(45, LOW);
-  digitalWrite(47, LOW);digitalWrite(49, LOW);digitalWrite(51, LOW);digitalWrite(53, LOW);
- 
-//Live Tweaks: Read the analog inputs associated with each "live" parameter.
-  live_sync_phase = map(analogRead(14),0,1023,-500,500);
-  live_grain_phase = map(analogRead(10),0,1023,-200,200);
-  live_grain_decay = map(analogRead(9),0,1023,-20,20);
-  live_grain2_phase = map(analogRead(8),0,1023,-200,200);
-  live_grain2_decay = map(analogRead(11),0,1023,-50,50);
-  
-  
-//Tempo Control: Read the analog inputs associated with the "tempo" parameter.
-tempo = map(analogRead(15),0,1023,1000,32000);
-  
-//Grab the parameters for the step that we're now in. We'll use a series of case
-//statements switched on the "pattern" variable that we incremented earlier.
+  if(counter>tempo) {
+    //Housecleaning: Just a few things to get out of the way since the counter is "full"
+    counter=0;
+    if(pattern==8){pattern=0;}
+    pattern++;
+    digitalWrite(39, LOW);digitalWrite(41, LOW);digitalWrite(43, LOW);digitalWrite(45, LOW);
+    digitalWrite(47, LOW);digitalWrite(49, LOW);digitalWrite(51, LOW);digitalWrite(53, LOW);
 
-/* In each of the case routines below you'll notice that we're addressing 
-each of the existing Auduino parameters and making them equal to the stored 
-parameter plus the associated "live" parameter. */
-  
-  switch(pattern){
+    //Live Tweaks: Read the analog inputs associated with each "live" parameter.
+    live_sync_phase = map(analogRead(14),0,1023,-500,500);
+    live_grain_phase = map(analogRead(10),0,1023,-200,200);
+    live_grain_decay = map(analogRead(9),0,1023,-20,20);
+    live_grain2_phase = map(analogRead(8),0,1023,-200,200);
+    live_grain2_decay = map(analogRead(11),0,1023,-50,50);
     
-    case 1:
-    syncPhaseInc = a1 + live_sync_phase; grainPhaseInc = a2 + live_grain_phase; grainDecay = a3 + live_grain_decay; grain2PhaseInc = a4 + live_grain2_phase; grain2Decay = a5 + live_grain2_decay; digitalWrite(53, HIGH); break;
-    case 2:
-    syncPhaseInc = b1 + live_sync_phase; grainPhaseInc = b2 + live_grain_phase; grainDecay = b3 + live_grain_decay; grain2PhaseInc = b4 + live_grain2_phase; grain2Decay = b5 + live_grain2_decay; digitalWrite(51, HIGH); break;
-    case 3:
-    syncPhaseInc = c1 + live_sync_phase; grainPhaseInc = c2 + live_grain_phase; grainDecay = c3 + live_grain_decay; grain2PhaseInc = c4 + live_grain2_phase; grain2Decay = c5 + live_grain2_decay; digitalWrite(49, HIGH); break;
-    case 4:
-    syncPhaseInc = d1 + live_sync_phase; grainPhaseInc = d2 + live_grain_phase; grainDecay = d3 + live_grain_decay; grain2PhaseInc = d4 + live_grain2_phase; grain2Decay = d5 + live_grain2_decay; digitalWrite(47, HIGH); break;
-    case 5:
-    syncPhaseInc = e1 + live_sync_phase; grainPhaseInc = e2 + live_grain_phase; grainDecay = e3 + live_grain_decay; grain2PhaseInc = e4 + live_grain2_phase; grain2Decay = e5 + live_grain2_decay; digitalWrite(45, HIGH); break;
-    case 6:
-    syncPhaseInc = f1 + live_sync_phase; grainPhaseInc = f2 + live_grain_phase; grainDecay = f3 + live_grain_decay; grain2PhaseInc = f4 + live_grain2_phase; grain2Decay = f5 + live_grain2_decay; digitalWrite(43, HIGH); break;
-    case 7:
-    syncPhaseInc = g1 + live_sync_phase; grainPhaseInc = g2 + live_grain_phase; grainDecay = g3 + live_grain_decay; grain2PhaseInc = g4 + live_grain2_phase; grain2Decay = g5 + live_grain2_decay; digitalWrite(41, HIGH); break; 
-    case 8:
-    syncPhaseInc = h1 + live_sync_phase; grainPhaseInc = h2 + live_grain_phase; grainDecay = h3 + live_grain_decay; grain2PhaseInc = h4 + live_grain2_phase; grain2Decay = h5 + live_grain2_decay; digitalWrite(39, HIGH); break;
-  }
-  
-//Check to see if the user is trying to change the step parameters.
-//This series of statements simply check for a button press from each of
-//the step buttons and call a function to change the indicated step.    
+    
+    //Tempo Control: Read the analog inputs associated with the "tempo" parameter.
+    tempo = map(analogRead(15),0,1023,1000,65000);
+    
+    //Grab the parameters for the step that we're now in. We'll use a series of case
+    //statements switched on the "pattern" variable that we incremented earlier.
+
+    /* In each of the case routines below you'll notice that we're addressing 
+    each of the existing Auduino parameters and making them equal to the stored 
+    parameter plus the associated "live" parameter. */
+    
+    switch(pattern) {
+      
+      case 1:
+      syncPhaseInc = a1 + live_sync_phase; grainPhaseInc = a2 + live_grain_phase; grainDecay = a3 + live_grain_decay; grain2PhaseInc = a4 + live_grain2_phase; grain2Decay = a5 + live_grain2_decay; digitalWrite(53, HIGH); break;
+        case 2:
+      syncPhaseInc = b1 + live_sync_phase; grainPhaseInc = b2 + live_grain_phase; grainDecay = b3 + live_grain_decay; grain2PhaseInc = b4 + live_grain2_phase; grain2Decay = b5 + live_grain2_decay; digitalWrite(51, HIGH); break;
+      case 3:
+      syncPhaseInc = c1 + live_sync_phase; grainPhaseInc = c2 + live_grain_phase; grainDecay = c3 + live_grain_decay; grain2PhaseInc = c4 + live_grain2_phase; grain2Decay = c5 + live_grain2_decay; digitalWrite(49, HIGH); break;
+      case 4:
+      syncPhaseInc = d1 + live_sync_phase; grainPhaseInc = d2 + live_grain_phase; grainDecay = d3 + live_grain_decay; grain2PhaseInc = d4 + live_grain2_phase; grain2Decay = d5 + live_grain2_decay; digitalWrite(47, HIGH); break;
+      case 5:
+      syncPhaseInc = e1 + live_sync_phase; grainPhaseInc = e2 + live_grain_phase; grainDecay = e3 + live_grain_decay; grain2PhaseInc = e4 + live_grain2_phase; grain2Decay = e5 + live_grain2_decay; digitalWrite(45, HIGH); break;
+      case 6:
+      syncPhaseInc = f1 + live_sync_phase; grainPhaseInc = f2 + live_grain_phase; grainDecay = f3 + live_grain_decay; grain2PhaseInc = f4 + live_grain2_phase; grain2Decay = f5 + live_grain2_decay; digitalWrite(43, HIGH); break;
+      case 7:
+      syncPhaseInc = g1 + live_sync_phase; grainPhaseInc = g2 + live_grain_phase; grainDecay = g3 + live_grain_decay; grain2PhaseInc = g4 + live_grain2_phase; grain2Decay = g5 + live_grain2_decay; digitalWrite(41, HIGH); break; 
+      case 8:
+      syncPhaseInc = h1 + live_sync_phase; grainPhaseInc = h2 + live_grain_phase; grainDecay = h3 + live_grain_decay; grain2PhaseInc = h4 + live_grain2_phase; grain2Decay = h5 + live_grain2_decay; digitalWrite(39, HIGH); break;
+    }
+    
+    //Check to see if the user is trying to change the step parameters.
+    //This series of statements simply check for a button press from each of
+    //the step buttons and call a function to change the indicated step.    
 
     if(digitalRead(24)==LOW){changeStep(1);}
     if(digitalRead(26)==LOW){changeStep(2);}
@@ -239,20 +233,20 @@ parameter plus the associated "live" parameter. */
     if(digitalRead(34)==LOW){changeStep(6);}
     if(digitalRead(38)==LOW){changeStep(7);}
     if(digitalRead(36)==LOW){changeStep(8);}
-}}
+  }
+}
 
-void changeStep(int step_num){
+void changeStep(int step_num) {
 
-/* The first thing we do is to turn off all indicator lights so that we can properly indicate 
-which step we're currently editing. */  
+  /* The first thing we do is to turn off all indicator lights so that we can properly indicate 
+  which step we're currently editing. */  
   
   digitalWrite(39, LOW);digitalWrite(41, LOW);digitalWrite(43, LOW);digitalWrite(45, LOW);
   digitalWrite(47, LOW);digitalWrite(49, LOW);digitalWrite(51, LOW);digitalWrite(53, LOW);  
 
-// Then indicate the appropriate step.  
+  // Then indicate the appropriate step.  
 
-    switch(step_num){
-    
+  switch(step_num) {
     case 1:
     digitalWrite(53, HIGH); break;
     case 2:
@@ -271,45 +265,45 @@ which step we're currently editing. */
     digitalWrite(39, HIGH); break;
   }
 
-/* This next chunk of code is fairly similar to the unaltered Auduino sketch. This allows 
-us to continue updating the synth parameters to the user input. That way, you can dial in 
-the sound of a particular step. The while-loop traps the program flow here until the user 
-pushes button 1. As the code currently stands, "live" parameters aren't applied while in 
-the step editor but you could easily add the live parameters below. */
+  /* This next chunk of code is fairly similar to the unaltered Auduino sketch. This allows 
+  us to continue updating the synth parameters to the user input. That way, you can dial in 
+  the sound of a particular step. The while-loop traps the program flow here until the user 
+  pushes button 1. As the code currently stands, "live" parameters aren't applied while in 
+  the step editor but you could easily add the live parameters below. */
 
-while(1){  
+  while(1) { 
 
-  counter++;
-  if(counter>tempo){
-  
-  counter=0;
-  syncPhaseInc = mapPentatonic(analogRead(SYNC_CONTROL));
+    counter++;
+    if(counter>tempo) {
+      counter=0;
+      syncPhaseInc = mapPentatonic(analogRead(SYNC_CONTROL));
 
-  grainPhaseInc  = mapPhaseInc(analogRead(GRAIN_FREQ_CONTROL)) / 2;
-  grainDecay     = analogRead(GRAIN_DECAY_CONTROL) / 8;
-  grain2PhaseInc = mapPhaseInc(analogRead(GRAIN2_FREQ_CONTROL)) / 2;
-  grain2Decay    = analogRead(GRAIN2_DECAY_CONTROL) / 4; 
+      grainPhaseInc  = mapPhaseInc(analogRead(GRAIN_FREQ_CONTROL)) / 2;
+      grainDecay     = analogRead(GRAIN_DECAY_CONTROL) / 8;
+      grain2PhaseInc = mapPhaseInc(analogRead(GRAIN2_FREQ_CONTROL)) / 2;
+      grain2Decay    = analogRead(GRAIN2_DECAY_CONTROL) / 4; 
 
-//Here we read the button 1 input and commit the step changes to the appropriate parameters.
-  
-  if(digitalRead(24)==LOW && step_num==1){
-  a1 = syncPhaseInc; a2 = grainPhaseInc; a3 = grainDecay; a4 = grain2PhaseInc; a5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==2){
-  b1 = syncPhaseInc; b2 = grainPhaseInc; b3 = grainDecay; b4 = grain2PhaseInc; b5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==3){
-  c1 = syncPhaseInc; c2 = grainPhaseInc; c3 = grainDecay; c4 = grain2PhaseInc; c5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==4){
-  d1 = syncPhaseInc; d2 = grainPhaseInc; d3 = grainDecay; d4 = grain2PhaseInc; d5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==5){
-  e1 = syncPhaseInc; e2 = grainPhaseInc; e3 = grainDecay; e4 = grain2PhaseInc; e5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==6){
-  f1 = syncPhaseInc; f2 = grainPhaseInc; f3 = grainDecay; f4 = grain2PhaseInc; f5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==7){
-  g1 = syncPhaseInc; g2 = grainPhaseInc; g3 = grainDecay; g4 = grain2PhaseInc; g5 = grain2Decay; return;}
-  else if(digitalRead(24)==LOW && step_num==8){
-  h1 = syncPhaseInc; h2 = grainPhaseInc; h3 = grainDecay; h4 = grain2PhaseInc; h5 = grain2Decay; return;}
-
-}}}
+      //Here we read the button 1 input and commit the step changes to the appropriate parameters.
+      
+      if(digitalRead(24)==LOW && step_num==1){
+      a1 = syncPhaseInc; a2 = grainPhaseInc; a3 = grainDecay; a4 = grain2PhaseInc; a5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==2){
+      b1 = syncPhaseInc; b2 = grainPhaseInc; b3 = grainDecay; b4 = grain2PhaseInc; b5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==3){
+      c1 = syncPhaseInc; c2 = grainPhaseInc; c3 = grainDecay; c4 = grain2PhaseInc; c5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==4){
+      d1 = syncPhaseInc; d2 = grainPhaseInc; d3 = grainDecay; d4 = grain2PhaseInc; d5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==5){
+      e1 = syncPhaseInc; e2 = grainPhaseInc; e3 = grainDecay; e4 = grain2PhaseInc; e5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==6){
+      f1 = syncPhaseInc; f2 = grainPhaseInc; f3 = grainDecay; f4 = grain2PhaseInc; f5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==7){
+      g1 = syncPhaseInc; g2 = grainPhaseInc; g3 = grainDecay; g4 = grain2PhaseInc; g5 = grain2Decay; return;}
+      else if(digitalRead(24)==LOW && step_num==8){
+      h1 = syncPhaseInc; h2 = grainPhaseInc; h3 = grainDecay; h4 = grain2PhaseInc; h5 = grain2Decay; return;}
+    }
+  }
+}
 
 
 SIGNAL(PWM_INTERRUPT)
