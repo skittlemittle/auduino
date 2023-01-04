@@ -1,2 +1,3 @@
-This is my modified version of the [auduino synth](https://code.google.com/archive/p/tinkerit/wikis/Auduino.wiki).
+[Auduino synth](https://code.google.com/archive/p/tinkerit/wikis/Auduino.wiki) based on
+[this](https://learn.sparkfun.com/tutorials/build-an-auduino-step-sequencer/all#buttons-and-knobs) sequencer mod.
 
