@@ -125,18 +125,23 @@ void audioOn() {
 }
 
 
-unsigned int tempo = 100000;
+// max and min step speeds
+#define MAX_TEMPO 6000
+#define MIN_TEMPO 650000
+long tempo = 100000;
+long counter = 0;
 int pattern = 0;
-int counter = 0;
 
-int a1 = 0; int a2 = 0; int a3 = 0; int a4 = 0; int a5 = 0; 
-int b1 = 0; int b2 = 0; int b3 = 0; int b4 = 0; int b5 = 0; 
-int c1 = 0; int c2 = 0; int c3 = 0; int c4 = 0; int c5 = 0; 
-int d1 = 0; int d2 = 0; int d3 = 0; int d4 = 0; int d5 = 0; 
-int e1 = 0; int e2 = 0; int e3 = 0; int e4 = 0; int e5 = 0; 
-int f1 = 0; int f2 = 0; int f3 = 0; int f4 = 0; int f5 = 0; 
-int g1 = 0; int g2 = 0; int g3 = 0; int g4 = 0; int g5 = 0; 
-int h1 = 0; int h2 = 0; int h3 = 0; int h4 = 0; int h5 = 0; 
+#define STEP_GROUP_LEN 5 // 5 settings to remember for each step.
+#define NUM_STEPS 8
+/*
+ *This stores the settings for each step, all flattened out like:
+ *[a1,a2,a3,a4,a5, b1,b2,b3,b4,b5, ...]
+ */
+int step_memory[STEP_GROUP_LEN * NUM_STEPS] = {0};
+// IO pins
+int leds[] = {39,40,41,42,43,44,45,46};
+int buttons[NUM_STEPS] = {24, 26, 28, 30, 32, 34, 36, 38};
 
 int live_sync_phase = 0;
 int live_grain_phase = 0;
@@ -144,126 +149,68 @@ int live_grain_decay = 0;
 int live_grain2_phase = 0;
 int live_grain2_decay = 0;
 
+
+void leds_off() {
+  for (const auto &led : leds)
+    digitalWrite(led, LOW);
+}
+
 void setup() {
   pinMode(PWM_PIN,OUTPUT);
   audioOn();
   pinMode(LED_PIN,OUTPUT);
 
-  pinMode(39, OUTPUT); digitalWrite(39, LOW);
-  pinMode(41, OUTPUT); digitalWrite(41, LOW);
-  pinMode(43, OUTPUT); digitalWrite(43, LOW);
-  pinMode(45, OUTPUT); digitalWrite(45, LOW);
-  pinMode(47, OUTPUT); digitalWrite(47, LOW);
-  pinMode(49, OUTPUT); digitalWrite(49, LOW);
-  pinMode(51, OUTPUT); digitalWrite(51, LOW);
-  pinMode(53, OUTPUT); digitalWrite(53, LOW);
-
-  pinMode(24, INPUT); digitalWrite(24, HIGH);
-  pinMode(26, INPUT); digitalWrite(26, HIGH);
-  pinMode(28, INPUT); digitalWrite(28, HIGH);
-  pinMode(30, INPUT); digitalWrite(30, HIGH);
-  pinMode(32, INPUT); digitalWrite(32, HIGH);
-  pinMode(34, INPUT); digitalWrite(34, HIGH);
-  pinMode(36, INPUT); digitalWrite(36, HIGH);
-  pinMode(38, INPUT); digitalWrite(38, HIGH);
-
+  for (const auto &led : leds) {
+    pinMode(led, OUTPUT);
+    digitalWrite(led, LOW);
+  }
+  // pull up buttons
+  for (const auto &button : buttons) {
+    pinMode(button, INPUT);
+    digitalWrite(button, HIGH);
+  }
 }
 
 void loop() {
   counter++;
   /* Most of the time, the main loop will just advance the counter while we continue generating noise. 
   Each iteration, we check the counter against our "tempo" parameter to find out if it's time yet to 
-  jump to the next step. */  
+  jump to the next step. */
 
-  if(counter>tempo) {
-    //Housecleaning: Just a few things to get out of the way since the counter is "full"
+  if(counter > tempo) {
     counter=0;
-    if(pattern==8){pattern=0;}
     pattern++;
-    digitalWrite(39, LOW);digitalWrite(41, LOW);digitalWrite(43, LOW);digitalWrite(45, LOW);
-    digitalWrite(47, LOW);digitalWrite(49, LOW);digitalWrite(51, LOW);digitalWrite(53, LOW);
+    if(pattern == NUM_STEPS) pattern = 0;
+    leds_off();
 
-    //Live Tweaks: Read the analog inputs associated with each "live" parameter.
     live_sync_phase = map(analogRead(14),0,1023,-500,500);
     live_grain_phase = map(analogRead(10),0,1023,-200,200);
     live_grain_decay = map(analogRead(9),0,1023,-20,20);
     live_grain2_phase = map(analogRead(8),0,1023,-200,200);
     live_grain2_decay = map(analogRead(11),0,1023,-50,50);
-    
-    
-    //Tempo Control: Read the analog inputs associated with the "tempo" parameter.
-    tempo = map(analogRead(15),0,1023,1000,65000);
-    
-    //Grab the parameters for the step that we're now in. We'll use a series of case
-    //statements switched on the "pattern" variable that we incremented earlier.
 
-    /* In each of the case routines below you'll notice that we're addressing 
-    each of the existing Auduino parameters and making them equal to the stored 
-    parameter plus the associated "live" parameter. */
-    
-    switch(pattern) {
-      
-      case 1:
-      syncPhaseInc = a1 + live_sync_phase; grainPhaseInc = a2 + live_grain_phase; grainDecay = a3 + live_grain_decay; grain2PhaseInc = a4 + live_grain2_phase; grain2Decay = a5 + live_grain2_decay; digitalWrite(53, HIGH); break;
-        case 2:
-      syncPhaseInc = b1 + live_sync_phase; grainPhaseInc = b2 + live_grain_phase; grainDecay = b3 + live_grain_decay; grain2PhaseInc = b4 + live_grain2_phase; grain2Decay = b5 + live_grain2_decay; digitalWrite(51, HIGH); break;
-      case 3:
-      syncPhaseInc = c1 + live_sync_phase; grainPhaseInc = c2 + live_grain_phase; grainDecay = c3 + live_grain_decay; grain2PhaseInc = c4 + live_grain2_phase; grain2Decay = c5 + live_grain2_decay; digitalWrite(49, HIGH); break;
-      case 4:
-      syncPhaseInc = d1 + live_sync_phase; grainPhaseInc = d2 + live_grain_phase; grainDecay = d3 + live_grain_decay; grain2PhaseInc = d4 + live_grain2_phase; grain2Decay = d5 + live_grain2_decay; digitalWrite(47, HIGH); break;
-      case 5:
-      syncPhaseInc = e1 + live_sync_phase; grainPhaseInc = e2 + live_grain_phase; grainDecay = e3 + live_grain_decay; grain2PhaseInc = e4 + live_grain2_phase; grain2Decay = e5 + live_grain2_decay; digitalWrite(45, HIGH); break;
-      case 6:
-      syncPhaseInc = f1 + live_sync_phase; grainPhaseInc = f2 + live_grain_phase; grainDecay = f3 + live_grain_decay; grain2PhaseInc = f4 + live_grain2_phase; grain2Decay = f5 + live_grain2_decay; digitalWrite(43, HIGH); break;
-      case 7:
-      syncPhaseInc = g1 + live_sync_phase; grainPhaseInc = g2 + live_grain_phase; grainDecay = g3 + live_grain_decay; grain2PhaseInc = g4 + live_grain2_phase; grain2Decay = g5 + live_grain2_decay; digitalWrite(41, HIGH); break; 
-      case 8:
-      syncPhaseInc = h1 + live_sync_phase; grainPhaseInc = h2 + live_grain_phase; grainDecay = h3 + live_grain_decay; grain2PhaseInc = h4 + live_grain2_phase; grain2Decay = h5 + live_grain2_decay; digitalWrite(39, HIGH); break;
-    }
-    
+    tempo = map(analogRead(15),0,1023,MAX_TEMPO,MIN_TEMPO);
+
+    // apply step settings and live settings
+    int group_offset = pattern * STEP_GROUP_LEN;
+    syncPhaseInc   = step_memory[group_offset + 0] + live_sync_phase;
+    grainPhaseInc  = step_memory[group_offset + 1] + live_grain_phase;
+    grainDecay     = step_memory[group_offset + 2] + live_grain_decay;
+    grain2PhaseInc = step_memory[group_offset + 3] + live_grain2_phase;
+    grain2Decay    = step_memory[group_offset + 4] + live_grain2_decay;
+    digitalWrite(leds[pattern], HIGH);
+
     //Check to see if the user is trying to change the step parameters.
-    //This series of statements simply check for a button press from each of
-    //the step buttons and call a function to change the indicated step.    
-
-    if(digitalRead(24)==LOW){changeStep(1);}
-    if(digitalRead(26)==LOW){changeStep(2);}
-    if(digitalRead(28)==LOW){changeStep(3);}
-    if(digitalRead(30)==LOW){changeStep(4);}
-    if(digitalRead(32)==LOW){changeStep(5);}
-    if(digitalRead(34)==LOW){changeStep(6);}
-    if(digitalRead(38)==LOW){changeStep(7);}
-    if(digitalRead(36)==LOW){changeStep(8);}
+    for (int i = 0; i < NUM_STEPS; i++) {
+      if (digitalRead(buttons[i]) == LOW)
+        changeStep(i);
+    }
   }
 }
 
 void changeStep(int step_num) {
-
-  /* The first thing we do is to turn off all indicator lights so that we can properly indicate 
-  which step we're currently editing. */  
-  
-  digitalWrite(39, LOW);digitalWrite(41, LOW);digitalWrite(43, LOW);digitalWrite(45, LOW);
-  digitalWrite(47, LOW);digitalWrite(49, LOW);digitalWrite(51, LOW);digitalWrite(53, LOW);  
-
-  // Then indicate the appropriate step.  
-
-  switch(step_num) {
-    case 1:
-    digitalWrite(53, HIGH); break;
-    case 2:
-    digitalWrite(51, HIGH); break;
-    case 3:
-    digitalWrite(49, HIGH); break;
-    case 4:
-    digitalWrite(47, HIGH); break;
-    case 5:
-    digitalWrite(45, HIGH); break;
-    case 6:
-    digitalWrite(43, HIGH); break;
-    case 7:
-    digitalWrite(41, HIGH); break; 
-    case 8:
-    digitalWrite(39, HIGH); break;
-  }
+  leds_off();
+  digitalWrite(leds[step_num], HIGH);
 
   /* This next chunk of code is fairly similar to the unaltered Auduino sketch. This allows 
   us to continue updating the synth parameters to the user input. That way, you can dial in 
@@ -271,10 +218,9 @@ void changeStep(int step_num) {
   pushes button 1. As the code currently stands, "live" parameters aren't applied while in 
   the step editor but you could easily add the live parameters below. */
 
-  while(1) { 
-
+  while(1) {
     counter++;
-    if(counter>tempo) {
+    if(counter > tempo) {
       counter=0;
       syncPhaseInc = mapPentatonic(analogRead(SYNC_CONTROL));
 
@@ -284,23 +230,15 @@ void changeStep(int step_num) {
       grain2Decay    = analogRead(GRAIN2_DECAY_CONTROL) / 4; 
 
       //Here we read the button 1 input and commit the step changes to the appropriate parameters.
-      
-      if(digitalRead(24)==LOW && step_num==1){
-      a1 = syncPhaseInc; a2 = grainPhaseInc; a3 = grainDecay; a4 = grain2PhaseInc; a5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==2){
-      b1 = syncPhaseInc; b2 = grainPhaseInc; b3 = grainDecay; b4 = grain2PhaseInc; b5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==3){
-      c1 = syncPhaseInc; c2 = grainPhaseInc; c3 = grainDecay; c4 = grain2PhaseInc; c5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==4){
-      d1 = syncPhaseInc; d2 = grainPhaseInc; d3 = grainDecay; d4 = grain2PhaseInc; d5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==5){
-      e1 = syncPhaseInc; e2 = grainPhaseInc; e3 = grainDecay; e4 = grain2PhaseInc; e5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==6){
-      f1 = syncPhaseInc; f2 = grainPhaseInc; f3 = grainDecay; f4 = grain2PhaseInc; f5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==7){
-      g1 = syncPhaseInc; g2 = grainPhaseInc; g3 = grainDecay; g4 = grain2PhaseInc; g5 = grain2Decay; return;}
-      else if(digitalRead(24)==LOW && step_num==8){
-      h1 = syncPhaseInc; h2 = grainPhaseInc; h3 = grainDecay; h4 = grain2PhaseInc; h5 = grain2Decay; return;}
+      if (digitalRead(buttons[0]) == LOW) {
+        int group_offset = step_num * STEP_GROUP_LEN;
+        step_memory[group_offset + 0] = syncPhaseInc;
+        step_memory[group_offset + 1] = grainPhaseInc;
+        step_memory[group_offset + 2] = grainDecay;
+        step_memory[group_offset + 3] = grain2PhaseInc;
+        step_memory[group_offset + 4] = grain2Decay;
+        return;
+      }
     }
   }
 }
@@ -320,7 +258,7 @@ SIGNAL(PWM_INTERRUPT)
     grain2Amp = 0x7fff;
     LED_PORT ^= 1 << LED_BIT; // Faster than using digitalWrite
   }
-  
+
   // Increment the phase of the grain oscillators
   grainPhaseAcc += grainPhaseInc;
   grain2PhaseAcc += grain2PhaseInc;
