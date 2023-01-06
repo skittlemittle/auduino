@@ -135,13 +135,14 @@ int pattern = 0;
 #define STEP_GROUP_LEN 5 // 5 settings to remember for each step.
 #define NUM_STEPS 8
 /*
- *This stores the settings for each step, all flattened out like:
- *[a1,a2,a3,a4,a5, b1,b2,b3,b4,b5, ...]
+ *This stores the settings for each step of the two sequences,
+ *all flattened out like:[a1,a2,a3,a4,a5, b1,b2,b3,b4,b5, ...]
  */
-int step_memory[STEP_GROUP_LEN * NUM_STEPS] = {0};
+int step_memory[STEP_GROUP_LEN * NUM_STEPS * 2] = {0};
 // IO pins
 int leds[] = {39,40,41,42,43,44,45,46};
 int buttons[NUM_STEPS] = {24, 26, 28, 30, 32, 34, 36, 38};
+const int sequence_select = 53; // switch to toggle between sequences
 
 int live_sync_phase = 0;
 int live_grain_phase = 0;
@@ -153,6 +154,15 @@ int live_grain2_decay = 0;
 void leds_off() {
   for (const auto &led : leds)
     digitalWrite(led, LOW);
+}
+
+// compute the offset in step_step memory to apply for a given step
+int compute_step_offset(int step) {
+  int shift = 0;
+  if (digitalRead(sequence_select) == LOW)
+    shift = STEP_GROUP_LEN * NUM_STEPS;
+
+  return (step * STEP_GROUP_LEN) + shift;
 }
 
 void setup() {
@@ -169,6 +179,9 @@ void setup() {
     pinMode(button, INPUT);
     digitalWrite(button, HIGH);
   }
+
+  pinMode(sequence_select, INPUT);
+  digitalWrite(sequence_select, HIGH);
 }
 
 void loop() {
@@ -192,7 +205,7 @@ void loop() {
     tempo = map(analogRead(15),0,1023,MAX_TEMPO,MIN_TEMPO);
 
     // apply step settings and live settings
-    int group_offset = pattern * STEP_GROUP_LEN;
+    int group_offset = compute_step_offset(pattern);
     syncPhaseInc   = step_memory[group_offset + 0] + live_sync_phase;
     grainPhaseInc  = step_memory[group_offset + 1] + live_grain_phase;
     grainDecay     = step_memory[group_offset + 2] + live_grain_decay;
@@ -231,7 +244,7 @@ void changeStep(int step_num) {
 
       //Here we read the button 1 input and commit the step changes to the appropriate parameters.
       if (digitalRead(buttons[0]) == LOW) {
-        int group_offset = step_num * STEP_GROUP_LEN;
+        int group_offset = compute_step_offset(step_num);
         step_memory[group_offset + 0] = syncPhaseInc;
         step_memory[group_offset + 1] = grainPhaseInc;
         step_memory[group_offset + 2] = grainDecay;
